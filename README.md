@@ -12,6 +12,42 @@ Competition in detail.
 
 <h2 id ='Strategy'>Strategy</h2>
 <h3 id = 'strategy1'>Tuning the parameters of the tutorial given by Google</h3>
+Train the model as the tutorial, the accurancy rate will be around 90%.
+{% highlight shell linenos %}
+nohup python tensorflow/examples/speech_commands/train.py \
+--how_many_training_steps=25000,25000 \
+--learning_rate=0.001,0.0001 \
+--train_dir=/home/maikfangogoair/tmp/save/tutorial \
+--model_architecture=conv > /home/maikfangogoair/tmp/save/tutorial/conv.log &
+{% endhighlight %}
+Freeze the model:
+{% highlight shell linenos %}
+python tensorflow/examples/speech_commands/freeze.py \
+--start_checkpoint=/home/maikfangogoair/tmp/save/tutorial/conv.ckpt-50000 \
+--output_file=/home/maikfangogoair/tmp/save/tutorial/conv_graph.pb
+{% endhighlight %}
+Test the model, as the tutorial shows, this [label_wav.py][6] can evaluate one wave file one time. 
+{% highlight shell linenos %}
+python tensorflow/examples/speech_commands/label_wav.py \
+--graph=/tmp/my_frozen_graph.pb \
+--labels=/tmp/speech_commands_train/conv_labels.txt \
+--wav=/tmp/speech_dataset/left/a5d485dc_nohash_0.wav
+{% endhighlight %}
+I'm going to slightly change the python file and make [label_wav_multiple.py] to evaluate all the wild test data
+and generate submission file for the competition directly. It will take around 30 mins to evaluate.
+{% highlight shell linenos %}
+nohup python label_wav_multiple.py \
+--graph=/home/maikfangogoair/tmp/save/tutorial/conv_graph.pb \
+--labels=/home/maikfangogoair/tmp/save/tutorial/conv_labels.txt \
+--wave_dir=/home/maikfangogoair/test/audio/ \
+--submission_file=/home/maikfangogoair/tmp/save/tutorial/submission.csv > nohup.out &
+{% endhighlight %}
+There is a trap in the competition. If you look carefully into the example submission file,
+you will find the "silence" and "unknown" label are different in the program. So replace them and submit.
+{% highlight shell linenos %}
+cd /home/maikfangogoair/tmp/save/tutorial/
+sed -e 's/_silence_/silence/g' -e 's/_unknown_/unknown/g' submission.csv > submission_final.csv
+{% endhighlight %}
 To start the competition, it's a good entry to try on the [tutorial][2] given by Google.
 Actually the tutorial is not only an entry, but also give a lot background about 
 the state-of-art technique on sound signal processing and tricky method to everlage 
@@ -55,6 +91,11 @@ the wild test dataset must be in lower quality than the labeled data, and beside
 Please skip to [here](#data_augmentation) for detail.   
 
 <h3 id = 'silence'>Compete with the "silence" class</h3>
+[As the tutorial][9], silence training data is created from the sound snippets of the ```_background_noise_``` folder.  
+Like the unkown data, raising the percentage of silence data in the training dataset will lead to higher possibility of predicting 
+silence. My understanding is "silence" is not absolutely silent, and there must be some background noise in nature. So the "silence" 
+can be identify as no human being voices in the sound snippets, the background noise is acceptable and maybe very loud. The intuition 
+is the sound wav for "silence" is continuous.
 <h3 id = 'unknown'>Compete with the "unknown" class</h3>
 <h3 id = 'data_augmentation'>Data Augmentation</h3>
 
@@ -73,7 +114,9 @@ Please skip to [here](#data_augmentation) for detail.
 [1]: https://www.kaggle.com/c/tensorflow-speech-recognition-challenge/
 [2]: https://www.tensorflow.org/tutorials/audio_recognition
 [3]: 
-
+[6]: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/speech_commands/label_wav.py
 [7]: https://github.com/ARM-software/ML-KWS-for-MCU
 [8]: https://arxiv.org/pdf/1711.07128.pdf
+[9]: https://www.tensorflow.org/tutorials/audio_recognition#silence
+
 
